@@ -1,15 +1,17 @@
 import { db } from "./index";
 import { messages } from "./schema";
-import { eq, desc } from "drizzle-orm";
+import { eq } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/d1";
 
-export function listWishes() {
-  return db.select().from(messages).orderBy(desc(messages.id)).all();
-}
-
-export function addMessage(text: string, recipient: string, author?: string) {
+export async function addMessage(
+  db,
+  text: string,
+  recipient: string,
+  author?: string,
+) {
   const timestamp = Math.floor(Date.now() / 1000);
 
-  const res = db
+  const res = await drizzle(db)
     .insert(messages)
     .values({
       text,
@@ -19,31 +21,38 @@ export function addMessage(text: string, recipient: string, author?: string) {
     })
     .run();
 
-  return { id: Number(res.lastInsertRowid) };
+  return { id: Number(res.meta.last_row_id) };
 }
 
-export function fulfillMessage(id: number) {
-  db.update(messages).set({ fulfilled: 1 }).where(eq(messages.id, id)).run();
+export async function fulfillMessage(db, id: number) {
+  await drizzle(db)
+    .update(messages)
+    .set({ fulfilled: 1 })
+    .where(eq(messages.id, id))
+    .run();
 }
 
-export function deleteMessage(id: number) {
-  const res = db.delete(messages).where(eq(messages.id, id)).run();
-  return { changes: res.changes };
+export async function deleteMessage(db, id: number) {
+  const res = await drizzle(db)
+    .delete(messages)
+    .where(eq(messages.id, id))
+    .run();
+  return { changes: res.meta.changes };
 }
 
-export function updateMessage(id: number, newMessage: string) {
+export async function updateMessage(db, id: number, newMessage: string) {
   const timestamp = Math.floor(Date.now() / 1000);
 
-  const res = db
+  const res = await drizzle(db)
     .update(messages)
     .set({ text: newMessage, updatedAt: timestamp })
     .where(eq(messages.id, id))
     .run();
-  return { changes: res.changes };
+  return { changes: res.meta.changes };
 }
 
-export async function getMessage(id: number) {
-  const res = await db
+export async function getMessage(db, id: number) {
+  const res = await drizzle(db)
     .select({
       text: messages.text,
       author: messages.author,

@@ -6,11 +6,12 @@ import {
   fulfillMessage,
   updateMessage,
 } from "./db/queries";
+import { index } from "./page";
 
 const app = new Hono();
 
 app.get("/", (c) => {
-  throw new HTTPException(403, { message: "403 Forbidden\n" });
+  return c.html(index);
 });
 
 app.get("/api/messages/:id/:name?", async (c) => {
@@ -25,7 +26,7 @@ app.get("/api/messages/:id/:name?", async (c) => {
     throw new HTTPException(400, { message: "400 Bad Request\n" });
   }
 
-  const { data } = await getMessage(id);
+  const { data } = await getMessage(c.env.beans_db, id);
 
   if (data === undefined)
     throw new HTTPException(404, { message: "404 Not Found\n" });
@@ -40,7 +41,7 @@ app.get("/api/messages/:id/:name?", async (c) => {
     throw new HTTPException(403, { message: "403 Forbidden\n" });
   }
 
-  fulfillMessage(id);
+  await fulfillMessage(c.env.beans_db, id);
 
   if (author) {
     return c.json({ message: text, from: author });
@@ -63,7 +64,7 @@ app.post("/api/messages/update/:id", async (c) => {
     throw new HTTPException(400, { message: "400 Bad Request\n" });
   }
 
-  const { data } = await getMessage(id);
+  const { data } = await getMessage(c.env.beans_db, id);
 
   if (data === undefined)
     throw new HTTPException(404, { message: "404 Not Found\n" });
@@ -78,7 +79,7 @@ app.post("/api/messages/update/:id", async (c) => {
     throw new HTTPException(403, { message: "403 Forbidden\n" });
   }
 
-  return c.json(updateMessage(id, message));
+  return c.json(await updateMessage(c.env.beans_db, id, message));
 });
 
 app.post("/api/messages/new", async (c) => {
@@ -93,7 +94,10 @@ app.post("/api/messages/new", async (c) => {
       400,
     );
 
-  return c.json(addMessage(message, recipient, author), 201);
+  return c.json(
+    await addMessage(c.env.beans_db, message, recipient, author),
+    201,
+  );
 });
 
 const port = Number(process.env.PORT) || 3000;

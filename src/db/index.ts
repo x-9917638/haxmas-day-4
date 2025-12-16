@@ -1,4 +1,3 @@
-import "dotenv/config"
-import { drizzle } from "drizzle-orm/bun-sqlite"
+import { drizzle } from "drizzle-orm/d1";
 
-export const db = drizzle(process.env.DB_FILE_NAME!)
+export const db = drizzle(process.env.beans_db!);

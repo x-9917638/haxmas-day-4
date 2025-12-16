@@ -13,7 +13,7 @@ API for sharing Christmas messages, written in TypeScript using Hono and SQL :3
 - Returns: id (number)
 e.g.
 ```sh
-curl -X POST http://localhost:3000/api/messages/new \
+curl -X POST http://localhost:8787/api/messages/new \
   -H "content-type: application/json" \
   -d '{"message":"Merry Christmas and a Happy New Year!", "author":"Some1","recipient":"Bob"}'
 ```
@@ -27,7 +27,7 @@ curl -X POST http://localhost:3000/api/messages/new \
     - from: string (optional)
 e.g. 
 ```sh
-curl http://localhost:3000/api/messages/1/Bob
+curl http://localhost:8787/api/messages/1/Bob
 ```
 
 **Update message**
@@ -42,7 +42,24 @@ curl http://localhost:3000/api/messages/1/Bob
     - changes: number
 e.g.
 ```sh
-curl -X POST http://localhost:3000/api/messages/update/1 \
+curl -X POST http://localhost:8787/api/messages/update/1 \
   -H "content-type: application/json" \
   -d '{"message":"Oops, Christmas passed, but Happy New Year!", "recipient":"Bob"}'
+```
+
+Local Testing:
+Add these keys (see drizzle documentation):
+```
+    accountId: process.env.CLOUDFLARE_ACCOUNT_ID!,
+    databaseId: process.env.CLOUDFLARE_DATABASE_ID!,
+    token: process.env.CLOUDFLARE_D1_TOKEN!,
+```
+Push the database:
+```
+npx drizzle-kit push
+```
+Run:
+```
+npm install
+npm run dev --remote
 ```
