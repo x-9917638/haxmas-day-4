@@ -1,7 +1,7 @@
 {
   "name": "haxmas-day-4",
   "scripts": {
-    "dev": "bun run --hot src/index.ts"
+    "dev": "npx bun run --hot src/index.ts"
   },
   "dependencies": {
     "better-sqlite3": "^12.5.0",

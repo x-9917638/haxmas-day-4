@@ -1,8 +1,11 @@
-import { sqliteTable, integer, text } from "drizzle-orm/sqlite-core"
+import { sqliteTable, integer, text } from "drizzle-orm/sqlite-core";
 
-export const wishes = sqliteTable("wishes", {
+export const messages = sqliteTable("wishes", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  item: text("item").notNull(),
-  fulfilled: integer("fulfilled").notNull().default(0),
+  text: text("text").notNull(),
+  author: text("author"),
+  recipient: text("recipient").notNull(),
+  fulfilled: integer("fufilled").notNull().default(0),
   createdAt: integer("created_at").notNull(),
-})
+  updatedAt: integer("updated_at"),
+});

@@ -1,47 +1,104 @@
-import { Hono } from "hono"
-import { HTTPException } from 'hono/http-exception'
-import { createWish, deleteWish, fulfillWish, listWishes } from "./db/queries"
+import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
+import {
+  getMessage,
+  addMessage,
+  fulfillMessage,
+  updateMessage,
+} from "./db/queries";
 
-
-const app = new Hono()
+const app = new Hono();
 
 app.get("/", (c) => {
-    throw new HTTPException(403, { message: 'Unauthorized' })
-})
+  throw new HTTPException(403, { message: "403 Forbidden\n" });
+});
 
-app.get("/api/wishes", (c) => c.json(listWishes()))
+app.get("/api/messages/:id/:name?", async (c) => {
+  const id = Number(c.req.param("id"));
+  const name = c.req.param("name");
 
-app.post("/api/wishes", async (c) => {
-  const body = await c.req.json().catch(() => null)
-  const item = (body?.item ?? "").toString().trim()
-  if (!item) return c.json({ error: "item is required" }, 400)
+  if (name === undefined) {
+    throw new HTTPException(403, { message: "403 Forbidden\n" });
+  }
 
-  return c.json(createWish(item), 201)
-})
+  if (!Number.isFinite(id)) {
+    throw new HTTPException(400, { message: "400 Bad Request\n" });
+  }
 
-app.patch("/api/wishes/:id/fulfill", (c) => {
-  const id = Number(c.req.param("id"))
-  if (!Number.isFinite(id)) return c.json({ error: "bad id" }, 400)
+  const { data } = await getMessage(id);
 
-  const res = fulfillWish(id)
-  if (res.changes === 0) return c.json({ error: "not found" }, 404)
+  if (data === undefined)
+    throw new HTTPException(404, { message: "404 Not Found\n" });
 
-  return c.json({ ok: true })
-})
+  const { text, author, recipient, fulfilled } = data;
 
-app.delete("/api/wishes/:id", (c) => {
-  const id = Number(c.req.param("id"))
-  if (!Number.isFinite(id)) return c.json({ error: "bad id" }, 400)
+  if (recipient !== name) {
+    throw new HTTPException(401, { message: "401 Unauthorized\n" });
+  }
 
-  const res = deleteWish(id)
-  if (res.changes === 0) return c.json({ error: "not found" }, 404)
+  if (fulfilled) {
+    throw new HTTPException(403, { message: "403 Forbidden\n" });
+  }
 
-  return c.json({ ok: true })
-})
+  fulfillMessage(id);
 
-const port = Number(process.env.PORT) || 3000
+  if (author) {
+    return c.json({ message: text, from: author });
+  }
+  return c.json({ message: text });
+});
+
+app.post("/api/messages/update/:id", async (c) => {
+  const body = await c.req.json().catch(() => null);
+
+  const message = (body?.message ?? "").toString().trim();
+  const id = Number(c.req.param("id"));
+  const name = (body?.recipient ?? undefined)?.toString().trim();
+
+  if (name === undefined) {
+    throw new HTTPException(403, { message: "403 Forbidden\n" });
+  }
+
+  if (!Number.isFinite(id)) {
+    throw new HTTPException(400, { message: "400 Bad Request\n" });
+  }
+
+  const { data } = await getMessage(id);
+
+  if (data === undefined)
+    throw new HTTPException(404, { message: "404 Not Found\n" });
+
+  const { recipient, fulfilled, ...other } = data;
+
+  if (recipient !== name) {
+    throw new HTTPException(401, { message: "401 Unauthorized\n" });
+  }
+
+  if (fulfilled) {
+    throw new HTTPException(403, { message: "403 Forbidden\n" });
+  }
+
+  return c.json(updateMessage(id, message));
+});
+
+app.post("/api/messages/new", async (c) => {
+  const body = await c.req.json().catch(() => null);
+  const message = (body?.message ?? "").toString().trim();
+  const author = (body?.author ?? null)?.toString().trim();
+  const recipient = (body?.recipient ?? "").toString().trim();
+
+  if (!message || !recipient)
+    return c.json(
+      { error: "Both a message and recipient are required\n" },
+      400,
+    );
+
+  return c.json(addMessage(message, recipient, author), 201);
+});
+
+const port = Number(process.env.PORT) || 3000;
 
 export default {
   port,
   fetch: app.fetch,
-}
+};
